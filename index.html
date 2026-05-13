@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart Radar Premium</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #080b14;
+            --bg-secondary: #0d1120;
+            --accent: #5b7cf7;
+            --accent-light: #8da4ff;
+            --accent-dim: rgba(91,124,247,0.12);
+            --accent-secondary: #7c5cfc;
+            --accent-teal: #38bdf8;
+            --success: #34d399;
+            --success-dim: rgba(52,211,153,0.12);
+            --glass-bg: rgba(13, 17, 32, 0.65);
+            --glass-bg-solid: rgba(16, 20, 38, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.06);
+            --glass-border-hover: rgba(255, 255, 255, 0.12);
+            --text-primary: #eef0f6;
+            --text-secondary: #6b7194;
+            --text-tertiary: #3a3f5c;
+            --danger: #ef4466;
+            --danger-dim: rgba(239,68,102,0.1);
+            --warning: #f5a623;
+            --warning-dim: rgba(245,166,35,0.12);
+            --card-radius: 20px;
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font);
+            -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding-bottom: 130px;
+            overflow-x: hidden;
+        }
+
+        /* ═══════════════════════════════════════
+           BACKGROUND
+           ═══════════════════════════════════════ */
+        .bg-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .mesh-gradient {
+            position: absolute;
+            width: 100%; height: 100%;
+            background:
+                radial-gradient(ellipse 500px 500px at 15% 5%, rgba(91,124,247,0.1) 0%, transparent 60%),
+                radial-gradient(ellipse 450px 450px at 85% 25%, rgba(124,92,252,0.07) 0%, transparent 60%),
+                radial-gradient(ellipse 400px 400px at 40% 85%, rgba(56,189,248,0.05) 0%, transparent 60%);
+            animation: meshShift 25s ease-in-out infinite alternate;
+        }
+
+        @keyframes meshShift {
+            0% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.08) rotate(0.5deg); }
+            100% { transform: scale(1) rotate(-0.5deg); }
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            will-change: transform;
+        }
+
+        .orb-1 {
+            width: 320px; height: 320px;
+            background: var(--accent);
+            opacity: 0.12;
+            top: -12%; left: -12%;
+            animation: orbFloat1 16s ease-in-out infinite alternate;
+        }
+
+        .orb-2 {
+            width: 260px; height: 260px;
+            background: var(--accent-secondary);
+            opacity: 0.1;
+            bottom: 8%; right: -12%;
+            animation: orbFloat2 20s ease-in-out infinite alternate;
+        }
+
+        .orb-3 {
+            width: 180px; height: 180px;
+            background: var(--accent-teal);
+            opacity: 0.07;
+            top: 45%; left: 55%;
+            animation: orbFloat3 14s ease-in-out infinite alternate;
+        }
+
+        @keyframes orbFloat1 { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(50px,70px) scale(1.25); } }
+        @keyframes orbFloat2 { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(-35px,-50px) scale(1.15); } }
+        @keyframes orbFloat3 { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(25px,-35px) scale(1.35); } }
+
+        .grid-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px);
+            background-size: 50px 50px;
+            mask-image: radial-gradient(ellipse 70% 50% at 50% 30%, black, transparent);
+        }
+
+        .particles { position: absolute; width: 100%; height: 100%; }
+
+        .particle {
+            position: absolute;
+            width: 2px; height: 2px;
+            background: var(--accent-light);
+            border-radius: 50%;
+            opacity: 0;
+            animation: particleFade 7s infinite;
+        }
+        .particle:nth-child(1) { top: 18%; left: 12%; animation-delay: 0s; }
+        .particle:nth-child(2) { top: 55%; left: 78%; animation-delay: 1.8s; }
+        .particle:nth-child(3) { top: 32%; left: 42%; animation-delay: 3.2s; }
+        .particle:nth-child(4) { top: 75%; left: 22%; animation-delay: 4.8s; }
+        .particle:nth-child(5) { top: 12%; left: 88%; animation-delay: 2.2s; }
+        .particle:nth-child(6) { top: 48%; left: 58%; animation-delay: 0.8s; }
+
+        @keyframes particleFade {
+            0%, 100% { opacity: 0; transform: translateY(0) scale(1); }
+            50% { opacity: 0.5; transform: translateY(-25px) scale(1.4); }
+        }
+
+        /* ═══════════════════════════════════════
+           NAVIGATION — сохранена как была
+           ═══════════════════════════════════════ */
+        nav {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            height: 72px;
+            width: 92%;
+            max-width: 400px;
+            background: rgba(10, 12, 22, 0.88);
+            backdrop-filter: blur(30px) saturate(1.8);
+            -webkit-backdrop-filter: blur(30px) saturate(1.8);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 36px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 100;
+            box-shadow:
+                0 25px 50px rgba(0,0,0,0.6),
+                0 0 0 0.5px rgba(255,255,255,0.04) inset;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-tertiary);
+            font-size: 9px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            width: 64px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            position: relative;
+            padding: 8px 0;
+        }
+
+        .nav-item svg {
+            width: 24px; height: 24px;
+            margin-bottom: 4px;
+            fill: currentColor;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .nav-item.active { color: var(--accent-light); }
+
+        .nav-item.active svg {
+            filter: drop-shadow(0 0 12px rgba(91,124,247,0.6));
+            transform: scale(1.15) translateY(-2px);
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 24px;
+            height: 3px;
+            background: var(--accent);
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 0 12px var(--accent);
+            animation: navIndicator 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes navIndicator {
+            from { width: 0; opacity: 0; }
+            to { width: 24px; opacity: 1; }
+        }
+
+        .dot {
+            position: absolute;
+            top: 4px; right: 16px;
+            width: 7px; height: 7px;
+            background: var(--danger);
+            border-radius: 50%;
+            display: none;
+            box-shadow: 0 0 8px var(--danger);
+            animation: dotPulse 2s infinite;
+        }
+        @keyframes dotPulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+        /* ═══════════════════════════════════════
+           HEADER — исправлен на полную ширину
+           ═══════════════════════════════════════ */
+        .header {
+            position: sticky;
+            top: 0;
+            padding: 20px 24px 16px;
+            z-index: 90;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            background: linear-gradient(180deg, var(--bg-primary) 60%, transparent);
+            width: 100%;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            line-height: 1.25;
+            color: var(--text-primary);
+            flex: 1;
+            min-width: 0;
+        }
+
+        .header h1 span {
+            color: var(--accent-light);
+        }
+
+        /* ═══════════════════════════════════════
+           TABS
+           ═══════════════════════════════════════ */
+        .tab-content {
+            display: none;
+            padding: 0 0 20px;
+            animation: tabReveal 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+        .tab-content.active { display: block; }
+
+        @keyframes tabReveal {
+            from { opacity: 0; transform: translateY(14px); filter: blur(3px); }
+            to { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+
+        /* ═══════════════════════════════════════
+           CARDS
+           ═══════════════════════════════════════ */
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px) saturate(1.4);
+            -webkit-backdrop-filter: blur(20px) saturate(1.4);
+            border-radius: var(--card-radius);
+            padding: 20px;
+            margin-bottom: 12px;
+            border: 1px solid var(--glass-border);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), rgba(255,255,255,0.09), rgba(255,255,255,0.06), transparent);
+        }
+
+        .card:active {
+            transform: scale(0.985);
+            border-color: var(--glass-border-hover);
+        }
+
+        .card-accent {
+            position: relative;
+        }
+        .card-accent::after {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: var(--card-radius);
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(91,124,247,0.25), transparent 45%, transparent 55%, rgba(124,92,252,0.2));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        /* ═══════════════════════════════════════
+           FORMS
+           ═══════════════════════════════════════ */
+        label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="time"] {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1.5px solid rgba(255,255,255,0.06);
+            border-radius: 14px;
+            padding: 14px 16px;
+            color: white;
+            font-size: 15px;
+            margin-bottom: 16px;
+            outline: none;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        input::placeholder { color: var(--text-tertiary); font-weight: 500; }
+
+        input:focus {
+            border-color: rgba(91,124,247,0.5);
+            box-shadow: 0 0 0 3px rgba(91,124,247,0.08), 0 0 16px rgba(91,124,247,0.06);
+            background: rgba(91,124,247,0.03);
+        }
+
+        .row { display: flex; gap: 12px; }
+
+        /* ═══════════════════════════════════════
+           BUTTONS
+           ═══════════════════════════════════════ */
+        .btn {
+            width: 100%;
+            padding: 16px 24px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            color: #fff;
+            box-shadow: 0 8px 24px rgba(91,124,247,0.3), 0 2px 6px rgba(91,124,247,0.15);
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transition: 0.5s;
+        }
+        .btn-primary:active::before { left: 100%; }
+        .btn-primary:active {
+            transform: translateY(2px) scale(0.98);
+            box-shadow: 0 4px 12px rgba(91,124,247,0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.04);
+            color: var(--text-primary);
+            border: 1.5px solid rgba(255,255,255,0.08);
+            box-shadow: none;
+        }
+        .btn-secondary:active {
+            background: rgba(255,255,255,0.07);
+            transform: scale(0.98);
+        }
+
+        /* ═══════════════════════════════════════
+           SWITCH
+           ═══════════════════════════════════════ */
+        .switch-wrap {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0 16px;
+        }
+        .switch-wrap span { font-size: 14px; font-weight: 600; }
+
+        .switch { position: relative; width: 50px; height: 28px; }
+        .switch input { display: none; }
+
+        .slider {
+            position: absolute; inset: 0;
+            background-color: rgba(255,255,255,0.08);
+            border-radius: 28px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .slider:before {
+            content: "";
+            position: absolute;
+            height: 20px; width: 20px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            border-radius: 50%;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        input:checked + .slider {
+            background: var(--accent);
+            box-shadow: 0 0 16px rgba(91,124,247,0.35);
+            border-color: transparent;
+        }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* ═══════════════════════════════════════
+           TASK CARDS
+           ═══════════════════════════════════════ */
+        .task { border-left: 3px solid transparent; transition: all 0.35s; }
+
+        .task.active-task {
+            border-left-color: var(--accent);
+            background: linear-gradient(100deg, rgba(91,124,247,0.04) 0%, var(--glass-bg) 40%);
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .task-title {
+            font-weight: 800;
+            font-size: 17px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: -0.2px;
+        }
+
+        /* Radar dot */
+        .radar-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            position: relative;
+            box-shadow: 0 0 8px var(--accent);
+            flex-shrink: 0;
+        }
+
+        .radar-dot::before,
+        .radar-dot::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 1.5px solid var(--accent);
+            animation: radarWave 2s infinite ease-out;
+        }
+        .radar-dot::after { animation-delay: 0.7s; }
+
+        .radar-dot.paused { background: var(--text-tertiary); box-shadow: none; }
+        .radar-dot.paused::before,
+        .radar-dot.paused::after { display: none; }
+
+        @keyframes radarWave {
+            0% { transform: scale(1); opacity: 0.7; }
+            100% { transform: scale(3); opacity: 0; }
+        }
+
+        .task-meta {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            background: rgba(0,0,0,0.2);
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .task-meta b { color: var(--text-primary); }
+
+        .task-actions { display: flex; gap: 8px; margin-top: 12px; }
+
+        .icon-btn {
+            flex: 1;
+            padding: 12px 8px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            text-align: center;
+        }
+
+        .icon-btn:active {
+            background: rgba(255,255,255,0.07);
+            transform: scale(0.95);
+        }
+
+        .btn-del {
+            color: var(--danger);
+            background: var(--danger-dim);
+            border-color: rgba(239,68,102,0.15);
+        }
+
+        /* ═══════════════════════════════════════
+           TAGS
+           ═══════════════════════════════════════ */
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 18px;
+            padding: 0 24px;
+        }
+
+        .tag {
+            background: rgba(255,255,255,0.04);
+            padding: 9px 16px;
+            border-radius: 28px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.06);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            color: var(--text-secondary);
+        }
+
+        .tag:active { transform: scale(0.92); }
+
+        .tag.selected {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+            box-shadow: 0 4px 14px rgba(91,124,247,0.35);
+            font-weight: 700;
+        }
+
+        /* ═══════════════════════════════════════
+           PROFILE
+           ═══════════════════════════════════════ */
+        .avatar-wrap {
+            position: relative;
+            width: 90px; height: 90px;
+            margin: 0 auto 16px;
+        }
+
+        .avatar {
+            width: 100%; height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary), var(--accent-teal));
+            background-size: 200% 200%;
+            animation: avatarGrad 6s ease infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: 900;
+            color: #fff;
+            z-index: 2;
+            position: relative;
+        }
+
+        @keyframes avatarGrad {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .avatar-glow {
+            position: absolute;
+            inset: -8px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            border-radius: 50%;
+            filter: blur(22px);
+            opacity: 0.3;
+            z-index: 1;
+            animation: glowPulse 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes glowPulse {
+            0% { opacity: 0.2; transform: scale(0.95); }
+            100% { opacity: 0.4; transform: scale(1.05); }
+        }
+
+        .stats { display: flex; gap: 12px; margin-top: 22px; }
+
+        .stat-item {
+            flex: 1;
+            background: rgba(0,0,0,0.2);
+            padding: 18px 14px;
+            border-radius: 18px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.04);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-item::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(91,124,247,0.2), transparent);
+        }
+
+        .stat-val {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--accent-light);
+            letter-spacing: -1px;
+        }
+
+        .stat-lbl {
+            font-size: 10px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+        }
+
+        /* ═══════════════════════════════════════
+           SUBSCRIPTION
+           ═══════════════════════════════════════ */
+        .sub-card {
+            text-align: center;
+            padding: 28px 20px;
+        }
+
+        .sub-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 12px;
+        }
+
+        .badge-active { background: var(--accent-dim); color: var(--accent-light); border: 1px solid rgba(91,124,247,0.2); }
+        .badge-trial { background: var(--warning-dim); color: var(--warning); border: 1px solid rgba(245,166,35,0.2); }
+        .badge-inactive { background: var(--danger-dim); color: var(--danger); border: 1px solid rgba(239,68,102,0.2); }
+
+        .progress-bg {
+            height: 6px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 3px;
+            margin: 18px 0 8px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            border-radius: 3px;
+            position: relative;
+            transition: width 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+            animation: shimmer 2.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Payment */
+        .pay-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+
+        .pay-btn {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 18px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.025);
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-align: left;
+        }
+
+        .pay-btn:active {
+            transform: scale(0.98);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .pay-btn.active {
+            border: 1px solid rgba(91,124,247,0.65);
+            background: rgba(91,124,247,0.14);
+            box-shadow: 0 0 0 1px rgba(91,124,247,0.18) inset, 0 10px 24px rgba(91,124,247,0.16);
+        }
+
+        .pay-btn.active .pay-label {
+            color: #ffffff;
+        }
+
+        .pay-btn.active .pay-desc {
+            color: var(--accent-light);
+        }
+
+        .pay-icon {
+            width: 42px; height: 42px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .pay-icon-stars { background: linear-gradient(135deg, #2cb5e8, #0090cc); box-shadow: 0 4px 10px rgba(44,181,232,0.25); }
+        .pay-icon-crypto { background: linear-gradient(135deg, var(--accent-secondary), #5b3cc4); box-shadow: 0 4px 10px rgba(124,92,252,0.25); }
+        .pay-icon-card { background: linear-gradient(135deg, #2a2d3e, #1e2030); }
+
+        .pay-label { font-weight: 700; font-size: 14px; }
+        .pay-desc { font-size: 11px; color: var(--text-secondary); margin-top: 2px; font-weight: 500; }
+
+        /* ═══════════════════════════════════════
+           MISC
+           ═══════════════════════════════════════ */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,0.02) 25%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.02) 75%);
+            background-size: 400% 100%;
+            animation: skeletonLoad 1.8s infinite;
+            border-radius: 10px;
+            height: 16px;
+            margin-bottom: 10px;
+        }
+        @keyframes skeletonLoad { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        .toast {
+            position: fixed;
+            top: 22px;
+            left: 50%;
+            transform: translate(-50%, -40px) scale(0.9);
+            background: rgba(8, 11, 20, 0.92);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(91,124,247,0.35);
+            color: white;
+            padding: 13px 26px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 13px;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+            box-shadow: 0 12px 36px rgba(0,0,0,0.5), 0 0 16px rgba(91,124,247,0.1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toast::before {
+            content: '✓';
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: white;
+            font-size: 11px;
+            font-weight: 900;
+            flex-shrink: 0;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translate(-50%, 0) scale(1);
+        }
+
+        .loader {
+            border: 2.5px solid rgba(0,0,0,0.1);
+            border-top: 2.5px solid #000;
+            border-radius: 50%;
+            width: 22px; height: 22px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto;
+        }
+        .loader-light { border-color: rgba(255,255,255,0.06); border-top-color: var(--accent); }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* ═══════════════════════════════════════
+           ONBOARDING
+           ═══════════════════════════════════════ */
+        #onboarding {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-primary);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            padding: 40px 28px;
+            text-align: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #onboarding .mesh-gradient {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+        }
+
+        .slide { display: none; position: relative; z-index: 2; }
+        .slide.active {
+            display: block;
+            animation: slideIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(25px) scale(0.96); filter: blur(6px); }
+            to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+
+        .ob-icon {
+            font-size: 72px;
+            margin-bottom: 24px;
+            animation: iconFloat 3s infinite alternate ease-in-out;
+        }
+
+        @keyframes iconFloat {
+            0% { transform: translateY(0) scale(1); }
+            100% { transform: translateY(-10px) scale(1.04); }
+        }
+
+        .ob-title {
+            font-size: 36px;
+            font-weight: 900;
+            margin-bottom: 14px;
+            line-height: 1.05;
+            letter-spacing: -1px;
+            color: var(--text-primary);
+        }
+
+        .ob-title .accent {
+            background: linear-gradient(135deg, var(--accent-light), var(--accent-teal));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .ob-text {
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 44px;
+            font-weight: 500;
+            max-width: 300px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .slide-dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 28px;
+        }
+
+        .slide-dot {
+            width: 8px; height: 8px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.08);
+            transition: all 0.4s;
+        }
+
+        .slide-dot.active {
+            width: 26px;
+            background: var(--accent);
+            box-shadow: 0 0 10px rgba(91,124,247,0.4);
+        }
+
+        /* ═══════════════════════════════════════
+           UTILITY
+           ═══════════════════════════════════════ */
+        .section-title {
+            font-size: 17px;
+            font-weight: 800;
+            margin: 24px 0 12px;
+            letter-spacing: -0.2px;
+            padding: 0 4px;
+        }
+
+        .counter-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .counter-badge strong { color: var(--accent-light); font-weight: 800; }
+
+        .btn-stop-all {
+            padding: 9px 16px;
+            border-radius: 22px;
+            background: var(--danger-dim);
+            border: 1px solid rgba(239,68,102,0.15);
+            color: var(--danger);
+            font-weight: 700;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .btn-stop-all:active {
+            transform: scale(0.95);
+            background: rgba(239,68,102,0.18);
+        }
+
+        .empty-state { text-align: center; padding: 48px 20px; }
+        .empty-icon { font-size: 52px; margin-bottom: 14px; opacity: 0.35; }
+        .empty-text { color: var(--text-secondary); font-weight: 600; line-height: 1.6; font-size: 14px; margin-bottom: 22px; }
+
+        .ref-card { position: relative; overflow: hidden; }
+        .ref-card::after {
+            content: '🎁';
+            position: absolute;
+            top: -8px; right: -8px;
+            font-size: 70px;
+            opacity: 0.05;
+            transform: rotate(12deg);
+            pointer-events: none;
+        }
+
+        .ref-reward {
+            display: inline-block;
+            color: var(--accent-light);
+            font-weight: 800;
+            background: var(--accent-dim);
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        .quiet-card { position: relative; overflow: hidden; }
+        .quiet-card::after {
+            content: '🌙';
+            position: absolute;
+            top: -4px; right: -4px;
+            font-size: 55px;
+            opacity: 0.04;
+            pointer-events: none;
+        }
+
+        .content-pad { padding: 0 24px; }
+
+        ::-webkit-scrollbar { width: 0; background: transparent; }
+    </style>
+</head>
+<body>
+
+    <!-- Background -->
+    <div class="bg-canvas">
+        <div class="mesh-gradient"></div>
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+        <div class="grid-overlay"></div>
+        <div class="particles">
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast">Успешно!</div>
+
+    <!-- ═══ ONBOARDING ═══ -->
+    <div id="onboarding" style="display: none;">
+        <div class="mesh-gradient"></div>
+        <div class="slide active" id="slide1">
+            <div class="ob-icon">📡</div>
+            <div class="ob-title">Smart<br><span class="accent">Radar</span></div>
+            <div class="ob-text">Моментальные уведомления с Kufar. Забирайте лучшие лоты за секунды после публикации.</div>
+            <div class="slide-dots"><div class="slide-dot active"></div><div class="slide-dot"></div><div class="slide-dot"></div></div>
+            <button class="btn btn-primary" onclick="nextSlide(2)">Продолжить</button>
+        </div>
+        <div class="slide" id="slide2">
+            <div class="ob-icon">🎛</div>
+            <div class="ob-title">Настройки<br><span class="accent">Профи</span></div>
+            <div class="ob-text">Минус-слова, вилка цен, фильтр «только частные». Настройте поиск идеально под себя.</div>
+            <div class="slide-dots"><div class="slide-dot"></div><div class="slide-dot active"></div><div class="slide-dot"></div></div>
+            <button class="btn btn-primary" onclick="nextSlide(3)">Продолжить</button>
+        </div>
+        <div class="slide" id="slide3">
+            <div class="ob-icon">💎</div>
+            <div class="ob-title">Начнем<br><span class="accent">Зарабатывать</span></div>
+            <div class="ob-text">У вас активирован триал на 24 часа. Создайте первый фильтр прямо сейчас.</div>
+            <div class="slide-dots"><div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot active"></div></div>
+            <button class="btn btn-primary" onclick="finishOnboarding()">Открыть панель</button>
+        </div>
+    </div>
+
+    <!-- ═══ TAB: FILTERS ═══ -->
+    <div id="tab-filters" class="tab-content active">
+        <div class="header">
+            <h1 id="greeting">Мои фильтры</h1>
+            <button class="btn-stop-all" onclick="stopAll()">⏸ Стоп все</button>
+        </div>
+        <div class="content-pad" style="margin-bottom: 14px;">
+            <div class="counter-badge">Активных радаров: <strong id="task-count">0</strong></div>
+        </div>
+        <div id="tasks-container" class="content-pad">
+            <div class="card"><div class="skeleton"></div><div class="skeleton" style="width: 70%"></div><div class="skeleton" style="width: 40%"></div></div>
+            <div class="card"><div class="skeleton"></div><div class="skeleton" style="width: 50%"></div></div>
+        </div>
+    </div>
+
+    <!-- ═══ TAB: CREATE ═══ -->
+    <div id="tab-new" class="tab-content">
+        <div class="header"><h1>Создать <span>радар</span></h1></div>
+        <div class="tags" id="templates"></div>
+        <div class="content-pad">
+            <div class="card card-accent">
+                <label>Поисковый запрос *</label>
+                <input type="text" id="t-query" placeholder="Например: iPhone 15 Pro">
+                <div class="row">
+                    <div style="flex:1"><label>Цена от (BYN)</label><input type="number" id="t-min" placeholder="0"></div>
+                    <div style="flex:1"><label>Цена до (BYN)</label><input type="number" id="t-max" placeholder="9999"></div>
+                </div>
+                <label>Минус-слова (исключить)</label>
+                <input type="text" id="t-minus" placeholder="копия, разбит, запчасти">
+                <div class="switch-wrap">
+                    <span>👤 Только от частных лиц</span>
+                    <label class="switch"><input type="checkbox" id="t-private"><span class="slider"></span></label>
+                </div>
+                <button class="btn btn-primary" style="margin-top: 6px;" onclick="createTask(this)">🚀 Запустить радар</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ TAB: SUBSCRIPTION ═══ -->
+    <div id="tab-sub" class="tab-content">
+        <div class="header"><h1>Подписка</h1></div>
+        <div class="content-pad">
+            <div class="card card-accent sub-card">
+                <div class="sub-badge badge-active" id="sub-badge"><span>●</span> Статус аккаунта</div>
+                <div id="sub-status" style="font-size: 32px; font-weight: 900; color: var(--accent-light); margin: 8px 0; letter-spacing: -1px;"><div class="loader loader-light"></div></div>
+                <div id="sub-days" style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Осталось: -- дней</div>
+                <div class="progress-bg"><div class="progress-bar" id="sub-progress"></div></div>
+            </div>
+
+            <div class="section-title">Продлить доступ</div>
+            <div class="card" style="margin-bottom:16px;">
+                <div style="font-weight:800; font-size:15px; margin-bottom:10px;">🏷 Промокод</div>
+                <div class="row" style="align-items:end; gap:10px;">
+                    <div style="flex:1">
+                        <label>Введите код</label>
+                        <input type="text" id="promo-code" placeholder="Например: SALE20" style="text-transform:uppercase;">
+                    </div>
+                    <button class="btn btn-secondary" style="width:auto; padding: 14px 18px; margin:0;" onclick="applyPromo()">⚡ Активировать</button>
+                </div>
+                <div id="promo-status" style="margin-top:10px; color:var(--text-secondary); font-size:13px; font-weight:600;">Скидочный промокод можно активировать здесь или командой <b>/promo КОД</b> в боте.</div>
+            </div>
+            <div class="section-title">Выберите тариф</div>
+            <div class="pay-grid" id="plan-grid">
+                <div class="pay-btn active" data-plan="30d" onclick="selectPlan('30d', this)"><div><div class="pay-label">30 дней</div><div class="pay-desc">$10 · быстрый старт</div></div></div>
+                <div class="pay-btn" data-plan="90d" onclick="selectPlan('90d', this)"><div><div class="pay-label">90 дней</div><div class="pay-desc">$24 · уже выгоднее</div></div></div>
+                <div class="pay-btn" data-plan="180d" onclick="selectPlan('180d', this)"><div><div class="pay-label">180 дней</div><div class="pay-desc">$45 · выбор большинства</div></div></div>
+                <div class="pay-btn" data-plan="365d" onclick="selectPlan('365d', this)"><div><div class="pay-label">1 год</div><div class="pay-desc">$90 · максимум выгоды</div></div></div>
+                <div class="pay-btn" data-plan="lifetime" onclick="selectPlan('lifetime', this)"><div><div class="pay-label">Навсегда</div><div class="pay-desc">$100 · один платеж</div></div></div>
+            </div>
+            <div id="plan-copy" class="card" style="margin:14px 0 16px 0;"><div style="font-weight:900; font-size:16px; margin-bottom:6px;">Оптимальный выбор для тех, кто хочет ловить объявления раньше других</div><div style="color:var(--text-secondary); font-size:13px;">Самый популярный вариант — <b>180 дней</b>. Хватает на полный сезон поиска и заметно выгоднее помесячной оплаты.</div></div>
+            <div class="section-title">Выберите способ оплаты</div>
+            <div class="pay-grid">
+                <div class="pay-btn" onclick="payStars()">
+                    <div class="pay-icon pay-icon-stars">⭐️</div>
+                    <div><div class="pay-label">Telegram Stars</div><div class="pay-desc" id="price-stars">500 Stars · Мгновенно</div></div>
+                </div>
+                <div class="pay-btn" onclick="payCrypto()">
+                    <div class="pay-icon pay-icon-crypto">💎</div>
+                    <div><div class="pay-label">CryptoBot USDT</div><div class="pay-desc" id="price-crypto">$10.00 · Криптоплатёж</div></div>
+                </div>
+                <div class="pay-btn" onclick="payCard()">
+                    <div class="pay-icon pay-icon-card">💳</div>
+                    <div><div class="pay-label">Перевод на карту</div><div class="pay-desc" id="price-card">30 BYN · Ручная проверка</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ TAB: PROFILE ═══ -->
+    <div id="tab-profile" class="tab-content">
+        <div class="header"><h1 style="width:100%; text-align:center;">Аккаунт</h1></div>
+        <div class="content-pad">
+            <div class="avatar-wrap">
+                <div class="avatar-glow"></div>
+                <div class="avatar" id="p-avatar"></div>
+            </div>
+            <div style="text-align:center; font-weight:900; font-size:24px; letter-spacing:-0.5px;" id="p-name">Загрузка...</div>
+            <div style="text-align:center; color:var(--text-secondary); font-size:12px; font-weight:600; margin-top:5px; letter-spacing:1px;" id="p-id">ID: 0</div>
+
+            <div class="stats">
+                <div class="stat-item"><div class="stat-val" id="st-found">-</div><div class="stat-lbl">Уловов</div></div>
+                <div class="stat-item"><div class="stat-val" id="st-status">-</div><div class="stat-lbl">Статус</div></div>
+            </div>
+
+            <div class="card quiet-card" style="margin-top: 22px;">
+                <div class="switch-wrap">
+                    <span>🌙 Тихие часы</span>
+                    <label class="switch"><input type="checkbox" id="q-enabled" onchange="saveQuiet()"><span class="slider"></span></label>
+                </div>
+                <div class="row" style="margin-top: 4px;">
+                    <div style="flex:1"><label>С (МСК)</label><input type="time" id="q-start" value="00:00" onchange="saveQuiet()"></div>
+                    <div style="flex:1"><label>По</label><input type="time" id="q-end" value="08:00" onchange="saveQuiet()"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ NAVIGATION ═══ -->
+    <nav>
+        <div class="nav-item active" onclick="switchTab('filters', this)">
+            <div class="dot" id="nav-dot"></div>
+            <svg viewBox="0 0 24 24"><path d="M3 4c0-1.1.9-2 2-2h14a2 2 0 0 1 2 2v2.4a2 2 0 0 1-.6 1.4L14 14.2V20a2 2 0 0 1-3.1 1.6l-3-2A2 2 0 0 1 7 18v-3.8L3.6 7.8A2 2 0 0 1 3 6.4V4z"/></svg>
+            Радары
+        </div>
+        <div class="nav-item" onclick="switchTab('new', this)">
+            <svg viewBox="0 0 24 24"><path d="M12 4v16m-8-8h16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg>
+            Создать
+        </div>
+        <div class="nav-item" onclick="switchTab('sub', this)">
+            <svg viewBox="0 0 24 24"><path d="M12 2l3 9h9l-7.3 5.3 2.8 8.7-7.5-5.4-7.5 5.4 2.8-8.7L0 11h9z"/></svg>
+            Доступ
+        </div>
+        <div class="nav-item" onclick="switchTab('profile', this)">
+            <svg viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm-7 8a7 7 0 1 1 14 0H5z"/></svg>
+            Профиль
+        </div>
+    </nav>
+
+    <!-- ═══ JAVASCRIPT ═══ -->
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+        
+        try { tg.setHeaderColor('#050505'); tg.setBackgroundColor('#050505'); } catch(e){}
+
+        const uid = tg.initDataUnsafe?.user?.id || 2117489924; 
+        const uname = tg.initDataUnsafe?.user?.first_name || "Трейдер";
+        const botName = "shturtb";
+        const API_BASE_URL = "https://binary-privacy-patricia-installations.trycloudflare.com"; 
+        
+        let profileData = {};
+        let appliedPromo = null;
+        let selectedPlan = '30d';
+        const PLAN_META = {
+            '30d': {title:'30 дней', usd:10, stars:500, byn:30},
+            '90d': {title:'90 дней', usd:24, stars:1200, byn:72},
+            '180d': {title:'180 дней', usd:45, stars:2250, byn:135},
+            '365d': {title:'1 год', usd:90, stars:4500, byn:270},
+            'lifetime': {title:'Навсегда', usd:100, stars:5000, byn:300},
+        };
+
+        const hour = new Date().getHours();
+        let greet = "Доброй ночи";
+        if(hour > 5 && hour < 12) greet = "Доброе утро";
+        else if(hour >= 12 && hour < 18) greet = "Добрый день";
+        else if(hour >= 18) greet = "Добрый вечер";
+        document.getElementById('greeting').innerHTML = `${greet},<br><span style="color:var(--neon-green)">${uname}</span>`;
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg; t.classList.add('show');
+            if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            setTimeout(() => t.classList.remove('show'), 2500);
+        }
+
+        const tmpls = ["iPhone 15", "Samsung S24", "MacBook M2", "PlayStation 5", "AirPods Pro", "Dyson", "Коляска", "Велосипед"];
+        document.getElementById('templates').innerHTML = tmpls.map(t => `<div class="tag" onclick="useTmpl('${t}', this)">${t}</div>`).join('');
+        function useTmpl(t, el) {
+            document.querySelectorAll('.tag').forEach(tag => tag.classList.remove('selected'));
+            el.classList.add('selected');
+            document.getElementById('t-query').value = t;
+            if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function switchTab(tab, element) {
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.remove('active');
+                el.style.animation = 'none';
+                el.offsetHeight; 
+                el.style.animation = null; 
+            });
+            document.getElementById('tab-' + tab).classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            if(element) element.classList.add('active');
+            else document.querySelector(`.nav-item[onclick*="${tab}"]`).classList.add('active');
+            
+            if(tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        async function api(path, method = 'GET', body = null) {
+            const url = `${API_BASE_URL}${path}${method === 'GET' ? (path.includes('?')?'&':'?') + '_t=' + Date.now() : ''}`;
+            const opts = { method, headers: { 'Content-Type': 'application/json' }};
+            if(body) opts.body = JSON.stringify(body);
+            try { const r = await fetch(url, opts); return await r.json(); } catch(e) { console.error('API error', path, e); return null; }
+        }
+
+        async function initApp() {
+            const [p, tasks] = await Promise.all([
+                api(`/api/profile?user_id=${uid}`),
+                api(`/api/tasks?user_id=${uid}`)
+            ]);
+
+            if(p) {
+                profileData = p; updateProfileUI();
+                appliedPromo = p.active_promo || null;
+                renderPricing(p.pricing, appliedPromo);
+                if(appliedPromo && appliedPromo.code) document.getElementById('promo-code').value = appliedPromo.code;
+                if(p.onboarded === 0) document.getElementById('onboarding').style.display = 'flex';
+            }
+            const initialPlanEl = document.querySelector(`#plan-grid .pay-btn[data-plan="${selectedPlan}"]`);
+            if(initialPlanEl) initialPlanEl.classList.add('active');
+            if(tasks) renderTasks(tasks);
+        }
+
+        function nextSlide(n) {
+            document.querySelectorAll('.slide').forEach(el => el.classList.remove('active'));
+            document.getElementById('slide' + n).classList.add('active');
+            if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+        }
+        
+        async function finishOnboarding() {
+            document.getElementById('onboarding').style.display = 'none';
+            api('/api/set_onboarded', 'POST', {user_id: uid}); 
+            if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        function renderTasks(tasks) {
+            const c = document.getElementById('tasks-container');
+            document.getElementById('task-count').innerText = tasks.length;
+            document.getElementById('nav-dot').style.display = tasks.some(t => t.is_active) ? 'block' : 'none';
+            
+            if(tasks.length === 0) {
+                c.innerHTML = `
+                    <div style="text-align:center; padding: 60px 20px;">
+                        <div style="font-size: 50px; opacity:0.5; margin-bottom: 20px;">🕸</div>
+                        <div style="color:var(--text-muted); font-weight: 600; line-height: 1.5;">Радаров пока нет.<br>Перейдите во вкладку создания и запустите первый поиск.</div>
+                        <button class="btn" style="margin-top: 20px; width: auto; padding: 12px 30px;" onclick="switchTab('new')">Создать радар</button>
+                    </div>`;
+                return;
+            }
+
+            c.innerHTML = tasks.map(t => `
+                <div class="card task ${t.is_active ? 'active-task' : ''}" id="task-${t.id}">
+                    <div class="task-header">
+                        <div class="task-title">
+                            <div class="radar-dot ${t.is_active ? '' : 'paused'}"></div>
+                            ${t.query}
+                        </div>
+                    </div>
+                    <div class="task-meta">
+                        ${t.min_price || t.max_price ? `💰 Вилка: <b>${t.min_price || 0} - ${t.max_price || '∞'} BYN</b><br>` : ''}
+                        ${t.minus_words ? `⛔️ Исключения: <i>${t.minus_words}</i><br>` : ''}
+                        ${t.only_private ? `👤 Только от частных лиц<br>` : ''}
+                        <div style="margin-top: 10px; font-weight: 700; color: ${t.found_count > 0 ? 'var(--neon-green)' : 'white'};">
+                            🎯 Найдено лотов: ${t.found_count}
+                        </div>
+                    </div>
+                    <div class="task-actions">
+                        <button class="icon-btn" style="${t.is_active ? 'background: rgba(255,255,255,0.1)' : 'background: rgba(0,255,102,0.1); color: var(--neon-green); border-color: var(--neon-green)'}" 
+                                onclick="toggleTask('${t.id}', ${t.is_active ? 0 : 1})">
+                            ${t.is_active ? '⏸ Пауза' : '▶️ Включить'}
+                        </button>
+                        <button class="icon-btn" onclick="duplicateTask('${t.query}', '${t.min_price||''}', '${t.max_price||''}', '${t.minus_words||''}', ${t.only_private})">📋 Копия</button>
+                        <button class="icon-btn btn-del" onclick="delTask('${t.id}')">Удалить</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function reloadTasks() {
+            const tasks = await api(`/api/tasks?user_id=${uid}`);
+            if(tasks) renderTasks(tasks);
+        }
+
+        async function createTask(btn) {
+            const q = document.getElementById('t-query').value;
+            if(!q) {
+                if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                const i = document.getElementById('t-query');
+                i.style.borderColor = 'var(--danger)';
+                setTimeout(() => i.style.borderColor = 'rgba(255,255,255,0.1)', 1000);
+                return;
+            }
+            
+            const data = {
+                user_id: uid, query: q,
+                min_price: parseInt(document.getElementById('t-min').value) || null,
+                max_price: parseInt(document.getElementById('t-max').value) || null,
+                minus_words: document.getElementById('t-minus').value,
+                only_private: document.getElementById('t-private').checked ? 1 : 0
+            };
+            
+            btn.innerHTML = '<div class="loader loader-light"></div>'; btn.disabled = true;
+            await api('/api/task/create', 'POST', data);
+            
+            document.querySelectorAll('#tab-new input[type="text"], #tab-new input[type="number"]').forEach(i => i.value = '');
+            document.getElementById('t-private').checked = false;
+            document.querySelectorAll('.tag').forEach(tag => tag.classList.remove('selected'));
+            
+            btn.innerHTML = "🚀 Запустить радар"; btn.disabled = false;
+            showToast("Радар успешно запущен!");
+            
+            switchTab('filters');
+            reloadTasks();
+        }
+
+        async function delTask(id) {
+            if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            const el = document.getElementById('task-'+id);
+            if(el) { el.style.transform = 'scale(0.8)'; el.style.opacity = '0'; }
+            const res = await api('/api/task/delete', 'POST', {id, uid});
+            if(!res || !res.success) {
+                showToast('Не удалось удалить радар');
+                reloadTasks();
+                return;
+            }
+            setTimeout(() => reloadTasks(), 300);
+        }
+
+        async function toggleTask(id, state) {
+            if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            await api('/api/task/toggle', 'POST', {id, uid, active: state});
+            reloadTasks();
+        }
+
+        async function stopAll() {
+            if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+            await api('/api/task/stopall', 'POST', {uid});
+            reloadTasks();
+        }
+
+        function duplicateTask(q, min, max, minus, priv) {
+            switchTab('new');
+            document.getElementById('t-query').value = q;
+            document.getElementById('t-min').value = min;
+            document.getElementById('t-max').value = max;
+            document.getElementById('t-minus').value = minus;
+            document.getElementById('t-private').checked = !!priv;
+            showToast("Настройки скопированы!");
+        }
+
+        function updateProfileUI() {
+            const p = profileData;
+            document.getElementById('p-avatar').innerText = p.fname.charAt(0).toUpperCase();
+            document.getElementById('p-name').innerText = p.fname;
+            document.getElementById('p-id').innerText = `ID: ${p.uid}`;
+            document.getElementById('st-found').innerText = p.total_found;
+            document.getElementById('st-status').innerText = p.status;
+            
+            document.getElementById('q-enabled').checked = !!p.quiet;
+            document.getElementById('q-start').value = p.q_start || "00:00";
+            document.getElementById('q-end').value = p.q_end || "08:00";
+
+            document.getElementById('sub-status').innerText = p.status;
+            if(p.status === 'Неактивна') document.getElementById('sub-status').style.color = 'var(--danger)';
+            
+            let daysTxt = p.days_left === 99999 ? '∞' : p.days_left;
+            document.getElementById('sub-days').innerText = `Осталось: ${daysTxt} дней`;
+            
+            let pct = p.days_left === 99999 ? 100 : Math.min((p.days_left / 30) * 100, 100);
+            const pb = document.getElementById('sub-progress');
+            pb.style.width = `${pct}%`;
+            
+            if(p.status === 'Триал') {
+                pb.style.background = 'linear-gradient(90deg, #ffcc00, #ff9f0a)';
+                document.getElementById('sub-status').style.color = '#ffcc00';
+            } else if (p.status === 'Неактивна') {
+                pb.style.background = 'var(--danger)';
+            } else {
+                pb.style.background = 'linear-gradient(90deg, var(--neon-green), #00ccff)';
+            }
+        }
+
+
+        function renderPricing(pricing, promo) {
+            const starsEl = document.getElementById('price-stars');
+            const cryptoEl = document.getElementById('price-crypto');
+            const cardEl = document.getElementById('price-card');
+            const promoStatus = document.getElementById('promo-status');
+            const plan = pricing && pricing.plan_key ? pricing : {plan_key:selectedPlan, plan_title: PLAN_META[selectedPlan].title, stars: PLAN_META[selectedPlan].stars, usd: PLAN_META[selectedPlan].usd, byn: PLAN_META[selectedPlan].byn, discount_percent:0};
+            if(pricing && pricing.has_discount) {
+                starsEl.innerHTML = `<span style="text-decoration:line-through; opacity:.5; margin-right:6px;">${PLAN_META[plan.plan_key].stars} Stars</span><b>${plan.stars} Stars</b> · ${plan.plan_title}`;
+                cryptoEl.innerHTML = `<span style="text-decoration:line-through; opacity:.5; margin-right:6px;">$${PLAN_META[plan.plan_key].usd.toFixed(2)}</span><b>$${plan.usd.toFixed(2)}</b> · ${plan.plan_title}`;
+                cardEl.innerHTML = `<span style="text-decoration:line-through; opacity:.5; margin-right:6px;">${PLAN_META[plan.plan_key].byn} BYN</span><b>${plan.byn.toFixed(2)} BYN</b> · ${plan.plan_title}`;
+                if(promo && promo.code) promoStatus.innerHTML = `✅ Промокод <b>${promo.code}</b> активирован. Скидка <b>${plan.discount_percent}%</b> уже применена.`;
+            } else {
+                starsEl.innerText = `${PLAN_META[selectedPlan].stars} Stars · ${PLAN_META[selectedPlan].title}`;
+                cryptoEl.innerText = `$${PLAN_META[selectedPlan].usd.toFixed(2)} · ${PLAN_META[selectedPlan].title}`;
+                cardEl.innerText = `${PLAN_META[selectedPlan].byn} BYN · ${PLAN_META[selectedPlan].title}`;
+                promoStatus.innerHTML = 'Скидочный промокод можно активировать здесь или командой <b>/promo КОД</b> в боте.';
+            }
+            const copy = document.getElementById('plan-copy');
+            if(copy){
+                copy.innerHTML = plan.plan_key === '180d'
+                    ? '<div style="font-weight:900; font-size:16px; margin-bottom:6px;">Выбор большинства</div><div style="color:var(--text-secondary); font-size:13px;">Тариф <b>180 дней</b> — лучший баланс цены и срока. Идеален для постоянного мониторинга и перепродажи.</div>'
+                    : `<div style="font-weight:900; font-size:16px; margin-bottom:6px;">Тариф: ${PLAN_META[selectedPlan].title}</div><div style="color:var(--text-secondary); font-size:13px;">Подписка оформляется сразу после успешной оплаты выбранным способом.</div>`;
+            }
+        }
+
+        function selectPlan(planKey, el) {
+            selectedPlan = planKey;
+            document.querySelectorAll('#plan-grid .pay-btn').forEach(x => x.classList.remove('active'));
+            if(el) el.classList.add('active');
+            renderPricing({plan_key: planKey, plan_title: PLAN_META[planKey].title, stars: PLAN_META[planKey].stars, usd: PLAN_META[planKey].usd, byn: PLAN_META[planKey].byn, has_discount:false, discount_percent:0}, appliedPromo);
+            if(appliedPromo && appliedPromo.discount_percent){
+                const d = (100 - appliedPromo.discount_percent)/100;
+                renderPricing({plan_key: planKey, plan_title: PLAN_META[planKey].title, stars: Math.round(PLAN_META[planKey].stars*d), usd: +(PLAN_META[planKey].usd*d).toFixed(2), byn: +(PLAN_META[planKey].byn*d).toFixed(2), has_discount:true, discount_percent:appliedPromo.discount_percent}, appliedPromo);
+            }
+        }
+
+        async function applyPromo() {
+            const input = document.getElementById('promo-code');
+            const code = (input.value || '').trim().toUpperCase();
+            if(!code) return showToast('Введите промокод');
+            showToast('Проверяем код...');
+            const res = await api('/api/promo/apply', 'POST', {uid, user_id: uid, code, promo_code: code, user: {id: uid}});
+            if(!res || res.success === false) {
+                document.getElementById('promo-status').innerHTML = `❌ ${(res && res.error) ? res.error : 'Не удалось применить промокод.'}`;
+                return;
+            }
+            if(res.type === 'discount') {
+                appliedPromo = {code: res.code, discount_percent: res.discount_percent};
+                renderPricing(res.pricing, appliedPromo);
+                showToast(`Промокод ${res.code} активирован`);
+            } else {
+                document.getElementById('promo-status').innerHTML = `✅ Промокод <b>${res.code}</b> активирован. Доступ обновлен до <b>${res.new_sub}</b>.`;
+                showToast('Премиум продлен');
+                const p = await api(`/api/profile?user_id=${uid}`);
+                if(p) { profileData = p; updateProfileUI(); }
+            }
+        }
+
+        function saveQuiet() {
+            api('/api/set_quiet', 'POST', {
+                user_id: uid, enabled: document.getElementById('q-enabled').checked ? 1 : 0,
+                start: document.getElementById('q-start').value, end: document.getElementById('q-end').value
+            });
+            if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+
+        // ============================================
+        // ИСПРАВЛЕННЫЕ ФУНКЦИИ ОПЛАТЫ
+        // ============================================
+        async function payCard() {
+            showToast('Отправляем реквизиты...');
+            await api('/api/payment_request', 'POST', {uid: uid, method: 'card', plan_key: selectedPlan, promo_code: appliedPromo?.code || ''});
+            tg.close();
+        }
+
+        async function payCrypto() {
+            showToast("Создаем счет...");
+            await api('/api/payment_request', 'POST', {uid: uid, method: 'crypto', plan_key: selectedPlan, promo_code: appliedPromo?.code || ''});
+            tg.close();
+        }
+
+        async function payStars() {
+            showToast("Открываем оплату...");
+            await api('/api/payment_request', 'POST', {uid: uid, method: 'stars', plan_key: selectedPlan, promo_code: appliedPromo?.code || ''});
+            tg.close();
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
